@@ -1,0 +1,54 @@
+networks:
+  microservices-network:
+    driver: bridge
+
+services:
+  mysql-sisdb:
+    image: mysql:latest
+    container_name: mysql-sisdb
+    environment:
+      MYSQL_ROOT_PASSWORD: abcd
+      MYSQL_DATABASE: sisdb_examen
+      MYSQL_USER: root123
+      MYSQL_PASSWORD: abcd
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root123", "-pabcd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  micro-vehiculos:
+    build:
+      context: ./micro-vehiculos
+    container_name: micro-vehiculos
+    ports:
+      - "8002:8002"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sisdb:3306/sisdb_examen
+      SPRING_DATASOURCE_USERNAME: root123
+      SPRING_DATASOURCE_PASSWORD: abcd
+    depends_on:
+      mysql-sisdb:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  micro-conductor:
+    build:
+      context: ./micro_conductor
+    container_name: micro-conductor
+    ports:
+      - "8003:8003"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sisdb:3306/sisdb_examen
+      SPRING_DATASOURCE_USERNAME: root123
+      SPRING_DATASOURCE_PASSWORD: abcd
+    depends_on:
+      mysql-sisdb:
+        condition: service_healthy
+    networks:
+      - microservices-network
